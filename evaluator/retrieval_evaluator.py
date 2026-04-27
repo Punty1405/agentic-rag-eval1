@@ -24,7 +24,7 @@ class RetrievalEvaluator:
         for item in data:
             ground_truth[item['query']] = {
                 'answer': item['answer'],
-                'evidence': item['supporting_facts']
+                'evidence': [e['fact'] for e in item['evidence_list']]
             }
 
         return ground_truth
