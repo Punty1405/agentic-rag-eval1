@@ -52,7 +52,7 @@ class Retriever:
         """
 
         if self.index is None:
-            raise ValueError("Index not built. Call build_index() first ")
+            raise ValueError("Index not built. Call build_index() first")
 
         retriever = self.index.as_retriever(similarity_top_k=self.top_k)
         results = retriever.retrieve(query)
