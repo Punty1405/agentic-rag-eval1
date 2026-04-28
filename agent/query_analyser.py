@@ -5,7 +5,7 @@ class QueryAnalyser:
     def __init__(self):
         self.strategies = {
             'simple': 'BAAI/llm-embedder',
-            'complex': 'BAAI/llm-embedder', # we'll add more embedding models later
+            'complex': 'BAAI/bge-large-en-v1.5',
         }
 
     def analyse(self, query: str) -> dict:

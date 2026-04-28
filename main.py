@@ -32,13 +32,24 @@ def run_pipeline(queries: list, top_k: int=5):
     ground_truth = evaluator.load_ground_truth(DATASET_PATH)
     print(f"Loaded {len(ground_truth)} ground truth entries")
 
-    # Step 3: Build index once - done once for all queries
-    print("\nBuilding index...")
-    first_analysis = analyser.analyse(queries[0])
-    retriever = Retriever(embedder=first_analysis['embedder'], top_k=top_k)
-    retriever.build_index(CORPUS_PATH)
+    # OLD # Step 3: Build index once - done once for all queries
+    # print("\nBuilding index...")
+    # first_analysis = analyser.analyse(queries[0])
+    # retriever = Retriever(embedder=first_analysis['embedder'], top_k=top_k)
+    # retriever.build_index(CORPUS_PATH)
 
-    # Step 4: Run pipeline for each query
+    # Step 3: Build one retriever per unique embedder
+    print("\nBuilding indices for each embedder")
+    retrievers = dict()
+    unique_embedders = set(analyser.strategies.values())
+
+    for embedder in unique_embedders:
+        retriever = Retriever(embedder=embedder, top_k=top_k)
+        retriever.build_index(CORPUS_PATH)
+        retrievers[embedder] = retriever
+    
+
+    # Step 4: Run pipeline for each query - agent picks the embedder based on complexity
     print("Running pipelines...")
     
     for query in queries:
@@ -47,13 +58,14 @@ def run_pipeline(queries: list, top_k: int=5):
         analysis = analyser.analyse(query)
         print(f"\nQuery: {query}")
         print(f"Complexity: {analysis['complexity']} | Hops: {analysis['hops']}")
+        retriever = retrievers[analysis['embedder']]
 
         # Retrieve
         retrieved_nodes = retriever.retrieve(query)
 
         # Evaluate
         result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
-        print(f"Hit Rate: {result.get('hit_rate', 'N/A')}")
+        print(f"Hit Rate: {result.get('hit_rate', 'N/A'): .4f} | {query[:80]}...")
 
     # Step 5: Summary
     summary = evaluator.summary()
