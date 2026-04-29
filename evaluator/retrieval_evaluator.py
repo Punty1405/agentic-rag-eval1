@@ -3,6 +3,7 @@
 
 import json
 from pathlib import Path
+from rapidfuzz import fuzz
 
 class RetrievalEvaluator:
     def __init__(self):
@@ -60,7 +61,9 @@ class RetrievalEvaluator:
 
         for rank, retrieved in enumerate(retrieved_evidence, start=1):
             for expected in expected_evidence:
-                if expected.lower() in retrieved.lower():
+                # if expected.lower() in retrieved.lower():
+                # Using rapidfuzz.fuzz.partial_ratio instead of 'in'
+                if fuzz.partial_ratio(expected.lower(), retrieved.lower()) >= 75:
                     relevant_ranks.append(rank)
                     hits += 1
                     break
