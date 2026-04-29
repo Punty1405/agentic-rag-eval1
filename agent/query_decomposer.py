@@ -15,10 +15,13 @@ Return ONLY the sub-queries, one per line. No numbering, no explanations, no pre
 class QueryDecomposer:
     def __init__(self, model: str="gpt-4o-mini"):
 
-        if load_dotenv() is None:
-            raise ValueError("API Key Missing")
+        load_dotenv()
+        api_key = os.getenv('OPENAI_API_KEY')
+
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY Missing")
         
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        self.client = OpenAI(api_key=api_key)
         self.model = model
 
     def decompose(self, query: str) -> list:

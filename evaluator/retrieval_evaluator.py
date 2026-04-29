@@ -30,10 +30,10 @@ class RetrievalEvaluator:
         return ground_truth
 
     
-    def evaluate(self, query: str, retrieved_nodes: list, ground_truth: dict) -> dict:
+    def evaluate(self, query: str, retrieved_nodes: list, ground_truth: dict, k_values : list=[1, 5, 10]) -> dict:
         """
         Evaluates retrieval quality for a single query.
-        Measures: Hit Rate - did we retrieve any relevant document?
+        Measures: dict with hit_rate, MRR, Recall@5, Recall@10, Precision@5 and Precision@10
         """
 
         if query not in ground_truth:
@@ -41,27 +41,52 @@ class RetrievalEvaluator:
         
         expected_evidence = ground_truth[query]['evidence']
         retrieved_evidence = [node.node.text for node in retrieved_nodes]
+        total_expected = len(expected_evidence)
+        total_retrieved = len(retrieved_evidence)
 
+        # Capture relevant ranks of the retrieved_nodes
+        relevant_ranks = []
         hits = 0
 
         # print(expected_evidence)
         # print(retrieved_evidence)
 
-        for evidence in expected_evidence:
-            for retrieved in retrieved_evidence:
-                # print()
-                if evidence.lower() in retrieved.lower():
+        # for evidence in expected_evidence:
+        #     for retrieved in retrieved_evidence:
+        #         # print()
+        #         if evidence.lower() in retrieved.lower():
+        #             hits += 1
+        #             break
+
+        for rank, retrieved in enumerate(retrieved_evidence, start=1):
+            for expected in expected_evidence:
+                if expected.lower() in retrieved.lower():
+                    relevant_ranks.append(rank)
                     hits += 1
                     break
 
+        # Hit Rate — fraction of expected evidence found anywhere in retrieved
         hit_rate = hits / len(expected_evidence) if expected_evidence else 0
+
+        # MRR - Mean Reciprocal Rank
+        mrr = 1.0 / relevant_ranks[0] if relevant_ranks else 0
+
+        # Recall@K and Precision@K
+        recall_at_k = dict()
+        precision_at_k = dict()
+        for k in k_values:
+            relevant_in_top_k = sum(1 for r in relevant_ranks if r <= k)
+            recall_at_k[f'Recall@{k}'] = relevant_in_top_k / total_expected if total_expected else 0
+            precision_at_k[f'Precision@{k}'] = relevant_in_top_k / k if k <= total_retrieved else relevant_in_top_k / total_retrieved
 
         result = {
             'query': query,
-            'expected_evidence_count': len(expected_evidence),
-            'hits': hits,
             'hit_rate': round(hit_rate, 4),
-            'answer': ground_truth[query]['answer']
+            'mrr': round(mrr, 4),
+            **{k: round(v, 4) for k,v in recall_at_k.items()},
+            **{k: round(v, 4) for k,v in precision_at_k.items()},
+            'total_expected': total_expected,
+            'total_retrieved': total_retrieved
         }
 
         self.results.append(result)
@@ -76,10 +101,16 @@ class RetrievalEvaluator:
         if not self.results:
             return {"error": "No results to summarise"}
 
-        avg_hit_rate = sum(r['hit_rate'] for r in self.results) / len(self.results)
+        metrics_keys = ['hit_rate', 'mrr', 'Recall@1', 'Recall@5', 'Recall@10', 'Precision@1', 'Precision@5', 'Precision@10']
+
+        averages = dict()
+
+        for key in metrics_keys:
+            values = [each_result.get(key, 0) for each_result in self.results if 'error' not in each_result]
+            averages[f'avg_{key}'] = round(sum(values)/len(values), 4) if values else 0
 
         return {
             'total_queries': len(self.results),
-            'average_hit_rate': round(avg_hit_rate, 4),
+            **averages,
             'results': self.results
         }

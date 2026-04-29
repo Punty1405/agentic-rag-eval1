@@ -59,7 +59,7 @@ def run_pipeline(queries: list, top_k: int=5):
         # Analyse Query
         analysis = analyser.analyse(query)
         print(f"\nQuery: {query}")
-        print(f"Complexity: {analysis['complexity']} | Hops: {analysis['hops']}")
+        # print(f"Complexity: {analysis['complexity']} | Hops: {analysis['estimated_hops']}")
         retriever = retrievers[analysis['embedder']]
 
         # Retrieve
@@ -76,15 +76,23 @@ def run_pipeline(queries: list, top_k: int=5):
 
         # Evaluate
         result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
-        print(f"Hit Rate: {result.get('hit_rate', 'N/A'): .4f} | {query[:80]}...")
+        # print(f"Hit Rate: {result.get('hit_rate', 'N/A'): .4f} | {query[:80]}...")
+        print(f"[{analysis['complexity']}] HR={result.get('hit_rate', 0):.3f} MRR={result.get('mrr', 0):.3f} R@5={result.get('recall@5', 0):.3f} | {query[:60]}...")
 
     # Step 5: Summary
     summary = evaluator.summary()
     print(f"\n\n{'-*-'*50}")
-    print(f"EVALUATION SUMMARY")
-    print(f"\n\n{'-*-'*50}")
-    print(f"Total queries: {summary['total_queries']}")
-    print(f"Average hit rate: {summary['average_hit_rate']}")
+    print(f"\n{'='*60}")
+    print(f"EVALUATION SUMMARY ({summary['total_queries']} queries)")
+    print(f"{'='*60}")
+    print(f"Hit Rate:    {summary['avg_hit_rate']:.4f}")
+    print(f"MRR:         {summary['avg_mrr']:.4f}")
+    print(f"Recall@1:    {summary['avg_Recall@1']:.4f}")
+    print(f"Recall@5:    {summary['avg_Recall@5']:.4f}")
+    print(f"Recall@10:   {summary['avg_Recall@10']:.4f}")
+    print(f"Precision@1: {summary['avg_Precision@1']:.4f}")
+    print(f"Precision@5: {summary['avg_Precision@5']:.4f}")
+    print(f"Precision@10: {summary['avg_Precision@10']:.4f}")
 
     # Step 6: Save the results
     OUTPUT_DIR.mkdir(exist_ok=True)
