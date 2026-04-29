@@ -4,7 +4,7 @@
 class QueryAnalyser:
     def __init__(self):
         self.strategies = {
-            'simple': 'BAAI/bge-large-en-v1.5',
+            'simple': 'BAAI/llm-embedder',
             'complex': 'BAAI/bge-large-en-v1.5',
         }
 

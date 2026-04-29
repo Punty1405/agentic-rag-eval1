@@ -8,6 +8,7 @@ from pathlib import Path
 from agent.query_analyser import QueryAnalyser
 from agent.retriever import Retriever
 from evaluator.retrieval_evaluator import RetrievalEvaluator
+from agent.query_decomposer import QueryDecomposer
 
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / 'data'
@@ -26,6 +27,7 @@ def run_pipeline(queries: list, top_k: int=5):
     # Step 1: Initialise components
     analyser = QueryAnalyser()
     evaluator = RetrievalEvaluator()
+    decomposer = QueryDecomposer()
 
     # Step 2: Load ground truth
     print("Loading ground truth...")
@@ -61,7 +63,16 @@ def run_pipeline(queries: list, top_k: int=5):
         retriever = retrievers[analysis['embedder']]
 
         # Retrieve
-        retrieved_nodes = retriever.retrieve(query)
+        # retrieved_nodes = retriever.retrieve(query)
+        retrieved_nodes = []
+
+        if analysis['complexity'] == 'complex':
+            subqueries = decomposer.decompose(query)
+            
+            for sq in subqueries:
+                retrieved_nodes.extend(retriever.retrieve(sq))
+        else:
+            retrieved_nodes = retriever.retrieve(query)
 
         # Evaluate
         result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
