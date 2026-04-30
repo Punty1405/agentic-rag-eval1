@@ -46,25 +46,13 @@ class RetrievalEvaluator:
         total_retrieved = len(retrieved_evidence)
 
         # Capture relevant ranks of the retrieved_nodes
-        relevant_ranks = []
+        relevant_ranks = set()
         hits = 0
 
-        # print(expected_evidence)
-        # print(retrieved_evidence)
-
-        # for evidence in expected_evidence:
-        #     for retrieved in retrieved_evidence:
-        #         # print()
-        #         if evidence.lower() in retrieved.lower():
-        #             hits += 1
-        #             break
-
-        for rank, retrieved in enumerate(retrieved_evidence, start=1):
-            for expected in expected_evidence:
-                # if expected.lower() in retrieved.lower():
-                # Using rapidfuzz.fuzz.partial_ratio instead of 'in'
+        for expected in expected_evidence:
+            for rank, retrieved in enumerate(retrieved_evidence, start=1):
                 if fuzz.partial_ratio(expected.lower(), retrieved.lower()) >= 75:
-                    relevant_ranks.append(rank)
+                    relevant_ranks.add(rank)
                     hits += 1
                     break
 
@@ -72,7 +60,7 @@ class RetrievalEvaluator:
         hit_rate = hits / len(expected_evidence) if expected_evidence else 0
 
         # MRR - Mean Reciprocal Rank
-        mrr = 1.0 / relevant_ranks[0] if relevant_ranks else 0
+        mrr = 1.0 / min(relevant_ranks) if relevant_ranks else 0
 
         # Recall@K and Precision@K
         recall_at_k = dict()

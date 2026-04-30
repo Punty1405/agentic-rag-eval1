@@ -35,10 +35,6 @@ def run_pipeline(queries: list, top_k: int=5):
     print(f"Loaded {len(ground_truth)} ground truth entries")
 
     # OLD # Step 3: Build index once - done once for all queries
-    # print("\nBuilding index...")
-    # first_analysis = analyser.analyse(queries[0])
-    # retriever = Retriever(embedder=first_analysis['embedder'], top_k=top_k)
-    # retriever.build_index(CORPUS_PATH)
 
     # Step 3: Build one retriever per unique embedder
     print("\nBuilding indices for each embedder")
@@ -53,20 +49,20 @@ def run_pipeline(queries: list, top_k: int=5):
 
     # Step 4: Run pipeline for each query - agent picks the embedder based on complexity
     print("Running pipelines...")
+    complexity_counts = {complexity: 0 for complexity in analyser.strategies.keys()}
     
-    for query in queries:
+    for count, query in enumerate(queries, start=1):
         
         # Analyse Query
         analysis = analyser.analyse(query)
+        complexity_counts[analysis['complexity']] += 1
         print(f"\nQuery: {query}")
-        # print(f"Complexity: {analysis['complexity']} | Hops: {analysis['estimated_hops']}")
         retriever = retrievers[analysis['embedder']]
 
         # Retrieve
-        # retrieved_nodes = retriever.retrieve(query)
         retrieved_nodes = []
 
-        if analysis['complexity'] == 'complex':
+        if analysis['complexity'] in ('complex', 'very_complex'):
             subqueries = decomposer.decompose(query)
             
             for sq in subqueries:
@@ -76,22 +72,26 @@ def run_pipeline(queries: list, top_k: int=5):
 
         # Evaluate
         result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
-        # print(f"Hit Rate: {result.get('hit_rate', 'N/A'): .4f} | {query[:80]}...")
-        print(f"[{analysis['complexity']}] HR={result.get('hit_rate', 0):.3f} MRR={result.get('mrr', 0):.3f} R@5={result.get('recall@5', 0):.3f} | {query[:60]}...")
+        print(f"[{analysis['complexity']}] HR={result.get('hit_rate', 0):.3f} MRR={result.get('mrr', 0):.3f} R@5={result.get('recall@5', 0):.3f} | {count}.{query[:60]}...")
 
     # Step 5: Summary
     summary = evaluator.summary()
-    print(f"\n\n{'-*-'*50}")
+    # print(f"\n{'='*60}")
+    # print("\nClassification of queries analysed:")
+    # print(f"\tSimple:       {complexity_counts['simple']}")
+    # print(f"\tComplex:      {complexity_counts['complex']}")
+    # print(f"\tVery Complex: {complexity_counts['very_complex']}")
+    # print(f"\n\n{'-*-'*50}")
     print(f"\n{'='*60}")
     print(f"EVALUATION SUMMARY ({summary['total_queries']} queries)")
     print(f"{'='*60}")
-    print(f"Hit Rate:    {summary['avg_hit_rate']:.4f}")
-    print(f"MRR:         {summary['avg_mrr']:.4f}")
-    print(f"Recall@1:    {summary['avg_Recall@1']:.4f}")
-    print(f"Recall@5:    {summary['avg_Recall@5']:.4f}")
-    print(f"Recall@10:   {summary['avg_Recall@10']:.4f}")
-    print(f"Precision@1: {summary['avg_Precision@1']:.4f}")
-    print(f"Precision@5: {summary['avg_Precision@5']:.4f}")
+    print(f"Hit Rate:     {summary['avg_hit_rate']:.4f}")
+    print(f"MRR:          {summary['avg_mrr']:.4f}")
+    print(f"Recall@1:     {summary['avg_Recall@1']:.4f}")
+    print(f"Recall@5:     {summary['avg_Recall@5']:.4f}")
+    print(f"Recall@10:    {summary['avg_Recall@10']:.4f}")
+    print(f"Precision@1:  {summary['avg_Precision@1']:.4f}")
+    print(f"Precision@5:  {summary['avg_Precision@5']:.4f}")
     print(f"Precision@10: {summary['avg_Precision@10']:.4f}")
 
     # Step 6: Save the results
@@ -109,48 +109,13 @@ if __name__ == "__main__":
     print(f"Data dir: {DATA_DIR}")
     print(f"Output dir: {OUTPUT_DIR}")
 
-    # test_queries = [
-    #     "Who founded Apple?",
-        # "Compare the revenue of Apple and Microsoft in 2023",
-        # "What is the capital of France?",
-        # "What are the differences between Python and JavaScript?"
-    # ]
-
-    # analyser = QueryAnalyser()
-    
-    # for query in test_queries:
-    #     result = analyser.analyse(query)
-
-    #     print(f"Query: {query}")
-    #     print(f"Complexity: {result['complexity']}")
-    #     print(f"Hops: {result['hops']}")
-    #     print(f"Embedder: {result['embedder']}")
-    # retriever = Retriever(embedder='BAAI/llm-embedder', top_k=5)
-    # retriever.build_index(CORPUS_PATH)
-
-    # results = retriever.retrieve(test_queries[0])
-
-
-    # print(f"Retrived {len(results)} documents for: {test_queries[0]}")
-
-    # for i, node in enumerate(results):
-    #     print(f"\n[{i+1}] Score: {node.score:.4f}")
-    #     print(f"Text: {node.node.text[:150]}...")
-
     with open(DATASET_PATH, 'r') as f:
         dataset = json.load(f)
 
+    print(f"Total dataset queries: {len(dataset)}")
+
     test_queries = [item['query'] for item in dataset[:50]]
 
+    print(f"Running pipeline on {len(test_queries)} queries...\n")
 
-# Start with 5 queries from the dataset — small run to verify pipeline
-    # test_queries = ["Who is the individual associated with the cryptocurrency industry facing a criminal trial on fraud and conspiracy charges, as reported by both The Verge and TechCrunch, and is accused by prosecutors of committing fraud for personal gain?",
-    # "Which individual is implicated in both inflating the value of a Manhattan apartment to a figure not yet achieved in New York City's real estate history, according to 'Fortune', and is also accused of adjusting this apartment's valuation to compensate for a loss in another asset's worth, as reported by 'The Age'?",
-    # "Who is the figure associated with generative AI technology whose departure from OpenAI was considered shocking according to Fortune, and is also the subject of a prevailing theory suggesting a lack of full truthfulness with the board as reported by TechCrunch?",
-    # "Do the TechCrunch article on software companies and the Hacker News article on The Epoch Times both report an increase in revenue related to payment and subscription models, respectively?",
-    # "Which online betting platform provides a welcome bonus of up to $1000 in bonus bets for new customers' first losses, runs NBA betting promotions, and is anticipated to extend the same sign-up offer to new users in Vermont, as reported by both CBSSports.com and Sporting News?"
-    # ]
-
-    print("Running the pipeline for 50 queries")
-
-    run_pipeline(test_queries)
+    run_pipeline(test_queries, top_k=10)
