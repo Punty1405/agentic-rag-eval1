@@ -5,6 +5,9 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from langsmith import traceable
+from langsmith.wrappers import wrap_openai
+
 SYSTEM_PROMPT = """
 You are a query decomposition assistant. Break complex multi-hop queries into independent sub-queries that can each be answered separately.
 Each sub-query should retrieve a distinct piece of evidence needed to answer the original query.
@@ -21,9 +24,10 @@ class QueryDecomposer:
         if not api_key:
             raise ValueError("OPENAI_API_KEY Missing")
         
-        self.client = OpenAI(api_key=api_key)
+        self.client = wrap_openai(OpenAI(api_key=api_key))
         self.model = model
 
+    @traceable(name="QueryDecomposer.decompose")
     def decompose(self, query: str) -> list:
         response = self.client.chat.completions.create(
             model=self.model,

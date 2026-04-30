@@ -11,6 +11,8 @@ from llama_index import VectorStoreIndex, ServiceContext
 from llama_index.embeddings import HuggingFaceEmbedding
 from util import JSONReader
 
+from langsmith import traceable
+
 class Retriever:
     def __init__(self, embedder: str, top_k: int=5):
         self.embedder = embedder
@@ -44,6 +46,7 @@ class Retriever:
         
         print(f"Index built with {len(documents)} documents")
 
+    @traceable(name="Retriever.retrieve")
     def retrieve(self, query: str) -> list:
         """
         Retrieves top_k relevant documents for a query.

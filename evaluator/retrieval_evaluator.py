@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from rapidfuzz import fuzz
 
+from langsmith import traceable
+
 class RetrievalEvaluator:
     def __init__(self):
         self.results = []
@@ -31,6 +33,7 @@ class RetrievalEvaluator:
         return ground_truth
 
     
+    @traceable(name="RetrievalEvaluator.evaluate")
     def evaluate(self, query: str, retrieved_nodes: list, ground_truth: dict, k_values : list=[1, 5, 10]) -> dict:
         """
         Evaluates retrieval quality for a single query.

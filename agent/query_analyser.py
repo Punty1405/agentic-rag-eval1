@@ -6,6 +6,9 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import json
 
+from langsmith import traceable
+from langsmith.wrappers import wrap_openai
+
 SYSTEM_PROMPT = """
 You are a query analysis assistant for a multi-hop retrieval system. Analyze the given query and return a structured JSON response.
 
@@ -33,7 +36,7 @@ class QueryAnalyser:
         if not api_key:
             raise ValueError("OPENAI_API_KEY Missing")
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = wrap_openai(OpenAI(api_key=api_key))
         self.model = model
         
         self.strategies = {
@@ -42,6 +45,7 @@ class QueryAnalyser:
             'very_complex': 'BAAI/bge-large-en-v1.5',
         }
 
+    @traceable(name="QueryAnalyser.analyse")
     def analyse(self, query: str) -> dict:
         """
         Analyses the incoming query complexity and returns retrieval strategy.
@@ -63,32 +67,5 @@ class QueryAnalyser:
         analysis = json.loads(response.choices[0].message.content)
         analysis['query'] = query
         analysis['embedder'] = self.strategies[analysis['complexity']]
-
-        # complexity = self._assess_complexity(query)
-        # hops = self._estimate_hops(query)
-        # embedder = self.strategies[complexity]
-
-        return analysis
-    
-    # def _assess_complexity(self, query: str) -> str:
-    #     """
-    #     Simple heuristic - we'll make this smarter later
-    #     """
-
-    #     complex_indicators = "and both compare difference between also additionally while".split()
-
-    #     query_lower = query.lower()
-
-    #     if any(indicator in query_lower for indicator in complex_indicators):
-    #         return 'complex'
-    #     else:
-    #         return 'simple'
         
-    # def _estimate_hops(self, query: str) -> int:
-    #     """
-    #     Estimate number of retrieval hops needed
-    #     """
-
-    #     if self._assess_complexity(query) == 'simple':
-    #         return 1
-    #     return 2    
+        return analysis

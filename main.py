@@ -10,6 +10,13 @@ from agent.retriever import Retriever
 from evaluator.retrieval_evaluator import RetrievalEvaluator
 from agent.query_decomposer import QueryDecomposer
 
+from dotenv import load_dotenv
+load_dotenv()
+
+from langsmith import traceable
+
+from datetime import datetime
+
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / 'data'
 OUTPUT_DIR = BASE_DIR / 'output'
@@ -17,6 +24,28 @@ REFERENCE_REPO = Path("~/agentic-rag-eval/reference-repo").expanduser()
 
 CORPUS_PATH = str(REFERENCE_REPO / "dataset/corpus.json")
 DATASET_PATH = str(REFERENCE_REPO / "dataset/MultiHopRAG.json")
+
+@traceable(name='run_query_for_one')
+def run_query_for_one(query, analyser, decomposer, retriever_dict, evaluator, ground_truth):
+    # Analyse Query
+    analysis = analyser.analyse(query)
+    retriever = retriever_dict[analysis['embedder']]
+
+    # Retrieve
+    retrieved_nodes = []
+
+    if analysis['complexity'] in ('complex', 'very_complex'):
+        subqueries = decomposer.decompose(query)
+        
+        for sq in subqueries:
+            retrieved_nodes.extend(retriever.retrieve(sq))
+    else:
+        retrieved_nodes = retriever.retrieve(query)
+
+    # Evaluate
+    result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
+
+    return analysis, result
 
 def run_pipeline(queries: list, top_k: int=5):
     """
@@ -34,8 +63,6 @@ def run_pipeline(queries: list, top_k: int=5):
     ground_truth = evaluator.load_ground_truth(DATASET_PATH)
     print(f"Loaded {len(ground_truth)} ground truth entries")
 
-    # OLD # Step 3: Build index once - done once for all queries
-
     # Step 3: Build one retriever per unique embedder
     print("\nBuilding indices for each embedder")
     retrievers = dict()
@@ -50,38 +77,21 @@ def run_pipeline(queries: list, top_k: int=5):
     # Step 4: Run pipeline for each query - agent picks the embedder based on complexity
     print("Running pipelines...")
     complexity_counts = {complexity: 0 for complexity in analyser.strategies.keys()}
+
+    run_id = f"eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    print(f"LangSmith Run ID: {run_id}")
     
     for count, query in enumerate(queries, start=1):
         
-        # Analyse Query
-        analysis = analyser.analyse(query)
+        # Pipeline single run
+        analysis, result = run_query_for_one(query, analyser, decomposer, retrievers, evaluator, ground_truth,
+            langsmith_extra={'metadata': {'eval_run': run_id, 'dataset_size': len(queries)}})
         complexity_counts[analysis['complexity']] += 1
-        print(f"\nQuery: {query}")
-        retriever = retrievers[analysis['embedder']]
-
-        # Retrieve
-        retrieved_nodes = []
-
-        if analysis['complexity'] in ('complex', 'very_complex'):
-            subqueries = decomposer.decompose(query)
-            
-            for sq in subqueries:
-                retrieved_nodes.extend(retriever.retrieve(sq))
-        else:
-            retrieved_nodes = retriever.retrieve(query)
-
-        # Evaluate
-        result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
+        
         print(f"[{analysis['complexity']}] HR={result.get('hit_rate', 0):.3f} MRR={result.get('mrr', 0):.3f} R@5={result.get('recall@5', 0):.3f} | {count}.{query[:60]}...")
 
     # Step 5: Summary
     summary = evaluator.summary()
-    # print(f"\n{'='*60}")
-    # print("\nClassification of queries analysed:")
-    # print(f"\tSimple:       {complexity_counts['simple']}")
-    # print(f"\tComplex:      {complexity_counts['complex']}")
-    # print(f"\tVery Complex: {complexity_counts['very_complex']}")
-    # print(f"\n\n{'-*-'*50}")
     print(f"\n{'='*60}")
     print(f"EVALUATION SUMMARY ({summary['total_queries']} queries)")
     print(f"{'='*60}")
@@ -114,7 +124,7 @@ if __name__ == "__main__":
 
     print(f"Total dataset queries: {len(dataset)}")
 
-    test_queries = [item['query'] for item in dataset[:50]]
+    test_queries = [item['query'] for item in dataset[:5]]
 
     print(f"Running pipeline on {len(test_queries)} queries...\n")
 
