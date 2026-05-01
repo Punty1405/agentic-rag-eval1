@@ -80,6 +80,8 @@ def run_pipeline(queries: list, top_k: int=5):
 
     run_id = f"eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     print(f"LangSmith Run ID: {run_id}")
+
+    checkpoint_path = OUTPUT_DIR / f"checkpoint_{run_id}.json"
     
     for count, query in enumerate(queries, start=1):
         
@@ -89,6 +91,13 @@ def run_pipeline(queries: list, top_k: int=5):
         complexity_counts[analysis['complexity']] += 1
         
         print(f"[{analysis['complexity']}] HR={result.get('hit_rate', 0):.3f} MRR={result.get('mrr', 0):.3f} R@5={result.get('recall@5', 0):.3f} | {count}.{query[:60]}...")
+
+        if count % 500 == 0:
+            OUTPUT_DIR.mkdir(exist_ok=True)
+            with open(checkpoint_path, 'w') as f:
+                json.dump(evaluator.summary(), f, indent=2)
+            print(f"Checkpoint saved at query: {count}")
+
 
     # Step 5: Summary
     summary = evaluator.summary()
@@ -124,7 +133,7 @@ if __name__ == "__main__":
 
     print(f"Total dataset queries: {len(dataset)}")
 
-    test_queries = [item['query'] for item in dataset[:5]]
+    test_queries = [item['query'] for item in dataset]
 
     print(f"Running pipeline on {len(test_queries)} queries...\n")
 
