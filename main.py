@@ -17,6 +17,8 @@ from langsmith import traceable
 
 from datetime import datetime
 
+import random
+
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / 'data'
 OUTPUT_DIR = BASE_DIR / 'output'
@@ -143,7 +145,11 @@ if __name__ == "__main__":
 
     print(f"Total dataset queries: {len(dataset)}")
 
-    test_queries = [item['query'] for item in dataset]
+    random.seed(101)
+    sample_indices = random.sample(range(len(dataset)), 20)
+    test_queries = [dataset[i]['query'] for i in sorted(sample_indices)]
+
+    # test_queries = [item['query'] for item in dataset]
 
     print(f"Running pipeline on {len(test_queries)} queries...\n")
 

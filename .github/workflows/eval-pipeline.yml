@@ -1,0 +1,29 @@
+name: RAG Pipeline Evaluation
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: pip install -r requirements-verified.txt
+    
+    - name: Run evaluation
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        LANGCHAIN_TRACING_V2: true
+        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+        LANGCHAIN_PROJECT: ${{ secrets.LANGCHAIN_PROJECT }}
+      run: python scripts/ci_eval.py

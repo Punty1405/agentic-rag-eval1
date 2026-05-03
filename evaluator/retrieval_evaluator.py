@@ -146,10 +146,10 @@ class RetrievalEvaluator:
             values = [each_result.get(key) for each_result in self.results
             if 'error' not in each_result and each_result.get(key) is not None]
 
-        if values:            
-            averages[f'avg_{key}'] = round(sum(values)/len(values), 4) if values else 0
-        else:
-            averages[f'avg_{key}'] = 0
+            if values:            
+                averages[f'avg_{key}'] = round(sum(values)/len(values), 4) if values else 0
+            else:
+                averages[f'avg_{key}'] = 0
 
         return {
             'total_queries': len(self.results),
