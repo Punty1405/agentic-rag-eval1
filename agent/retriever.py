@@ -4,9 +4,6 @@
 import sys
 from pathlib import Path
 
-REFERENCE_REPO = Path("~/agentic-rag-eval/reference-repo").expanduser()
-sys.path.insert(0, str(REFERENCE_REPO))
-
 from llama_index import VectorStoreIndex, ServiceContext
 from llama_index.embeddings import HuggingFaceEmbedding
 from util import JSONReader
