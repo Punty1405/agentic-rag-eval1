@@ -92,13 +92,16 @@ class RetrievalEvaluator:
         reference = " ".join(expected_evidence)
 
         # Context Recall calculation
-        cr_score = asyncio.run(
-            self.context_recall.ascore(
-                user_input=query,
-                retrieved_contexts=retrieved_contexts,
-                reference=reference
+        cr_score_value = None
+        if reference.strip():
+            cr_score = asyncio.run(
+                self.context_recall.ascore(
+                    user_input=query,
+                    retrieved_contexts=retrieved_contexts,
+                    reference=reference
+                )
             )
-        )
+            cr_score_value = cr_score.value
 
         # Decomposition Quality calculation
         decomposition_score = None
@@ -117,7 +120,7 @@ class RetrievalEvaluator:
             'total_retrieved': total_retrieved,
 
             # RAGAS integration
-            'context_recall': cr_score.value,
+            'context_recall': cr_score_value,
             'decomposition_quality': decomposition_score,
             'sub_queries': sub_queries
         }
@@ -140,7 +143,7 @@ class RetrievalEvaluator:
         averages = dict()
 
         for key in metrics_keys:
-            if key=='decomposition_qulity':
+            if key in ['decomposition_qulity', 'context_recall']:
                 values = [each_result.get(key) for each_result in self.results
                 if 'error' not in each_result and each_result.get(key) is not None]
             else:

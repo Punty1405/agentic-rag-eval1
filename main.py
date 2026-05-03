@@ -92,7 +92,7 @@ def run_pipeline(queries: list, top_k: int=5):
         complexity_counts[analysis['complexity']] += 1
         
         print(f"\n\n{count}.{query}...\nComplexity=[{analysis['complexity']}]\nHR={result.get('hit_rate', 0):.3f}" \
-        f"\nMRR={result.get('mrr', 0):.3f}\nR@5={result.get('recall@5', 0):.3f}\nCR={result.get('context_recall', 0): .3f}" \
+        f"\nMRR={result.get('mrr', 0):.3f}\nR@5={result.get('recall@5', 0):.3f}\nCR={result.get('context_recall') or 0: .3f}" \
         f"\nDQ={result.get('decomposition_quality') or 0: .3f}")
 
         if result.get('sub_queries') is not None:
