@@ -143,13 +143,13 @@ class RetrievalEvaluator:
         averages = dict()
 
         for key in metrics_keys:
-            if key in ['decomposition_qulity', 'context_recall']:
-                values = [each_result.get(key) for each_result in self.results
-                if 'error' not in each_result and each_result.get(key) is not None]
-            else:
-                values = [each_result.get(key, 0) for each_result in self.results if 'error' not in each_result]
-            
+            values = [each_result.get(key) for each_result in self.results
+            if 'error' not in each_result and each_result.get(key) is not None]
+
+        if values:            
             averages[f'avg_{key}'] = round(sum(values)/len(values), 4) if values else 0
+        else:
+            averages[f'avg_{key}'] = 0
 
         return {
             'total_queries': len(self.results),
