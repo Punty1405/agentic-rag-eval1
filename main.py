@@ -33,6 +33,7 @@ def run_query_for_one(query, analyser, decomposer, retriever_dict, evaluator, gr
 
     # Retrieve
     retrieved_nodes = []
+    subqueries = None
 
     if analysis['complexity'] in ('complex', 'very_complex'):
         subqueries = decomposer.decompose(query)
@@ -43,7 +44,7 @@ def run_query_for_one(query, analyser, decomposer, retriever_dict, evaluator, gr
         retrieved_nodes = retriever.retrieve(query)
 
     # Evaluate
-    result = evaluator.evaluate(query, retrieved_nodes, ground_truth)
+    result = evaluator.evaluate(query, retrieved_nodes, ground_truth, subqueries)
 
     return analysis, result
 
@@ -90,7 +91,14 @@ def run_pipeline(queries: list, top_k: int=5):
             langsmith_extra={'metadata': {'eval_run': run_id, 'dataset_size': len(queries)}})
         complexity_counts[analysis['complexity']] += 1
         
-        print(f"[{analysis['complexity']}] HR={result.get('hit_rate', 0):.3f} MRR={result.get('mrr', 0):.3f} R@5={result.get('recall@5', 0):.3f} | {count}.{query[:60]}...")
+        print(f"\n\n{count}.{query}...\nComplexity=[{analysis['complexity']}]\nHR={result.get('hit_rate', 0):.3f}" \
+        f"\nMRR={result.get('mrr', 0):.3f}\nR@5={result.get('recall@5', 0):.3f}\nCR={result.get('context_recall', 0): .3f}" \
+        f"\nDQ={result.get('decomposition_quality') or 0: .3f}")
+
+        if result.get('sub_queries') is not None:
+            print("Sub-Queries:")
+            for i, sq in enumerate(result['sub_queries'], 1):
+                print(f"{count}.{i}:{sq}")
 
         if count % 500 == 0:
             OUTPUT_DIR.mkdir(exist_ok=True)
@@ -104,18 +112,20 @@ def run_pipeline(queries: list, top_k: int=5):
     print(f"\n{'='*60}")
     print(f"EVALUATION SUMMARY ({summary['total_queries']} queries)")
     print(f"{'='*60}")
-    print(f"Hit Rate:     {summary['avg_hit_rate']:.4f}")
-    print(f"MRR:          {summary['avg_mrr']:.4f}")
-    print(f"Recall@1:     {summary['avg_Recall@1']:.4f}")
-    print(f"Recall@5:     {summary['avg_Recall@5']:.4f}")
-    print(f"Recall@10:    {summary['avg_Recall@10']:.4f}")
-    print(f"Precision@1:  {summary['avg_Precision@1']:.4f}")
-    print(f"Precision@5:  {summary['avg_Precision@5']:.4f}")
-    print(f"Precision@10: {summary['avg_Precision@10']:.4f}")
+    print(f"Hit Rate:               {summary['avg_hit_rate']:.4f}")
+    print(f"MRR:                    {summary['avg_mrr']:.4f}")
+    print(f"Recall@1:               {summary['avg_Recall@1']:.4f}")
+    print(f"Recall@5:               {summary['avg_Recall@5']:.4f}")
+    print(f"Recall@10:              {summary['avg_Recall@10']:.4f}")
+    print(f"Precision@1:            {summary['avg_Precision@1']:.4f}")
+    print(f"Precision@5:            {summary['avg_Precision@5']:.4f}")
+    print(f"Precision@10:           {summary['avg_Precision@10']:.4f}")
+    print(f"Context Recall:         {summary['avg_context_recall']:.4f}")
+    print(f"Decomposition Quality:  {summary['avg_decomposition_quality']:.4f}")
 
     # Step 6: Save the results
     OUTPUT_DIR.mkdir(exist_ok=True)
-    output_file = OUTPUT_DIR / "evaluation_results.json"
+    output_file = OUTPUT_DIR / f"evaluation_results_{run_id}.json"
 
     with open(output_file, 'w') as f:
         json.dump(summary, f, indent=2)
