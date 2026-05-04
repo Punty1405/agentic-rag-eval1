@@ -20,10 +20,10 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements-verified.txt
     
+    - name: Run security audit
+        run: pip-audit || true  # Don't fail build, just report
+    
     - name: Run evaluation
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        LANGCHAIN_TRACING_V2: true
-        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
-        LANGCHAIN_PROJECT: ${{ secrets.LANGCHAIN_PROJECT }}
       run: python scripts/ci_eval.py
