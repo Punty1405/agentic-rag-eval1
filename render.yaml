@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: agentic-rag-api
+    runtime: python
+    buildCommand: pip install -r requirements-verified.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: LANGCHAIN_API_KEY
+        sync: false
+      - key: LANGCHAIN_TRACING_V2
+        value: true
+      - key: LANGCHAIN_PROJECT
+        value: agentic-rag-eval
