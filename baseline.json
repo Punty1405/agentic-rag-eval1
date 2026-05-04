@@ -1,9 +1,9 @@
 {
-  "sample_size": 20,
+  "sample_size": 500,
   "random_seed": 101,
   "metrics": {
-    "hit_rate": 0.7250,
-    "context_recall": 0.8706,
-    "decomposition_quality": 0.7442
+    "hit_rate": 0.6748,
+    "context_recall": 0.772,
+    "decomposition_quality": 0.7322
   }
 }

@@ -23,10 +23,8 @@ from evaluator.retrieval_evaluator import RetrievalEvaluator
 
 # Paths to data folders
 BASE_DIR = Path(__file__).parent.parent
-REFERENCE_REPO = Path("~/agentic-rag-eval/reference-repo").expanduser()
-
-CORPUS_PATH = str(REFERENCE_REPO / "dataset/corpus.json")
-DATASET_PATH = str(REFERENCE_REPO / "dataset/MultiHopRAG.json")
+CORPUS_PATH = str(BASE_DIR / 'data/corpus.json')
+DATASET_PATH = str(BASE_DIR / 'data/MultiHopRAG.json')
 
 OUTPUT_DIR = BASE_DIR / 'output'
 

@@ -22,10 +22,9 @@ import random
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / 'data'
 OUTPUT_DIR = BASE_DIR / 'output'
-REFERENCE_REPO = Path("~/agentic-rag-eval/reference-repo").expanduser()
 
-CORPUS_PATH = str(REFERENCE_REPO / "dataset/corpus.json")
-DATASET_PATH = str(REFERENCE_REPO / "dataset/MultiHopRAG.json")
+CORPUS_PATH = str(DATA_DIR / "corpus.json")
+DATASET_PATH = str(DATA_DIR / "MultiHopRAG.json")
 
 @traceable(name='run_query_for_one')
 def run_query_for_one(query, analyser, decomposer, retriever_dict, evaluator, ground_truth):
@@ -102,7 +101,7 @@ def run_pipeline(queries: list, top_k: int=5):
             for i, sq in enumerate(result['sub_queries'], 1):
                 print(f"{count}.{i}:{sq}")
 
-        if count % 500 == 0:
+        if count % 250 == 0:
             OUTPUT_DIR.mkdir(exist_ok=True)
             with open(checkpoint_path, 'w') as f:
                 json.dump(evaluator.summary(), f, indent=2)
@@ -146,7 +145,7 @@ if __name__ == "__main__":
     print(f"Total dataset queries: {len(dataset)}")
 
     random.seed(101)
-    sample_indices = random.sample(range(len(dataset)), 20)
+    sample_indices = random.sample(range(len(dataset)), 500)
     test_queries = [dataset[i]['query'] for i in sorted(sample_indices)]
 
     # test_queries = [item['query'] for item in dataset]

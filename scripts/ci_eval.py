@@ -28,29 +28,28 @@ def load_baseline():
     return baseline
 
 def run_evaluation(baseline: dict):
-    """Run pipeline on same sample as baseline"""
+    """Run pipeline on same sample as baseline - but with single embedder to save time on CI Eval Run"""
+
+    EMBEDDER = "BAAI/bge-large-en-v1.5"  # Winner from Day 3 ablation
+    
+    print(f"CI Mode: Using single embedder ({EMBEDDER}) for speed")
+
     analyser = QueryAnalyser()
     evaluator = RetrievalEvaluator()
     decomposer = QueryDecomposer()
 
+    print(f"\nBuilding index with {EMBEDDER}...")
+    retriever = Retriever(EMBEDDER, top_k=10)
+    retriever.build_index(CORPUS_PATH)
+
     ground_truth = evaluator.load_ground_truth(DATASET_PATH)
     print(f"Loaded {len(ground_truth)} ground truth entries")
-
-    unique_embedders = set(analyser.strategies.values())
-    retriever_dict = dict()
-
-    for embedder in unique_embedders:
-        retriever = Retriever(embedder, top_k=10)
-        retriever.build_index(CORPUS_PATH)
-        retriever_dict[embedder] = retriever
     
     with open(DATASET_PATH, 'r') as f:
         dataset = json.load(f)
     
     random.seed(baseline['random_seed'])
-
     sample_indices = random.sample(range(len(dataset)), baseline['sample_size'])
-
     target_queries = [dataset[i]['query'] for i in sorted(sample_indices)]
 
     print(f"\nRunning the pipeline for {len(target_queries)} sample queries")
@@ -60,7 +59,6 @@ def run_evaluation(baseline: dict):
         analysis = analyser.analyse(query)
 
         retrieved_nodes = []
-        retriever = retriever_dict[analysis['embedder']]
         sub_queries = None
 
         if analysis['complexity'] in ['complex', 'very_complex']:
