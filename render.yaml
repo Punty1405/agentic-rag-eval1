@@ -7,9 +7,3 @@ services:
     envVars:
       - key: OPENAI_API_KEY
         sync: false
-      - key: LANGCHAIN_API_KEY
-        sync: false
-      - key: LANGCHAIN_TRACING_V2
-        value: true
-      - key: LANGCHAIN_PROJECT
-        value: agentic-rag-eval
